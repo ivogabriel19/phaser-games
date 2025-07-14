@@ -3,12 +3,29 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "mapa2.tmx",
     "expandedProjectPaths": [
         "."
     ],
     "file.lastUsedOpenFilter": "Todos los archivos (*)",
     "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json": {
+            "scale": 0.8817187499999999,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 480.31189083820664,
+                "y": 319.82987772461456
+            }
+        },
+        "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json#archer": {
+            "scaleInDock": 1
+        },
+        "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json#main-tiles": {
+            "scaleInDock": 1
+        },
         "archer.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
@@ -16,6 +33,20 @@
         "main-tiles.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
+        },
+        "mapa1.json": {
+            "scale": 0.7382291666666666,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 478.8485960208833,
+                "y": 319.6839283194581
+            }
+        },
+        "mapa1.json#archer": {
+            "scaleInDock": 1
+        },
+        "mapa1.json#main-tiles": {
+            "scaleInDock": 1
         },
         "mapa1.tmx": {
             "scale": 0.75,
@@ -25,7 +56,11 @@
                 "y": 347.99999999999994
             }
         },
+        "mapa1.tmx#archer": {
+            "scaleInDock": 1
+        },
         "mapa1.tmx#main-tiles": {
+            "scaleInDock": 1,
             "scaleInEditor": 1
         },
         "mapa1_json.tmj": {
@@ -35,27 +70,51 @@
                 "x": 479.52589247918723,
                 "y": 319.6839283194581
             }
+        },
+        "mapa2.tmx": {
+            "scale": 0.44085937499999994,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 960.6237816764133,
+                "y": 639.6597554492291
+            }
+        },
+        "mapa2.tmx#archer": {
+            "scaleInDock": 1
+        },
+        "mapa2.tmx#main-tiles": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tileSet.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         }
     },
     "last.exportedFilePath": "C:/Workspace/phaser-games/pokemon-map/map-lab",
     "last.externalTilesetPath": "C:/Workspace/phaser-games/pokemon-map/map-lab",
-    "last.imagePath": "C:/Workspace/phaser-games/pokemon-map/assets/Archer",
+    "last.imagePath": "C:/Workspace/phaser-games/pokemon-map/map-lab",
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
     "openFiles": [
+        "mapa2.tmx"
     ],
     "project": "mapa.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "mapa1_json.tmj",
-        "mapa1.tmx",
+        "mapa2.tmx",
+        "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json",
+        "mapa1.json",
+        "tileSet.tsx",
         "main-tiles.tsx",
+        "mapa1.tmx",
+        "mapa1_json.tmj",
         "archer.tsx"
     ],
-    "tileset.lastUsedFilter": "Archivos de conjuntos de patrones Tiled (*.tsx *.xml)",
+    "tileset.lastUsedFilter": "Todos los archivos (*)",
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
-        "height": 128,
-        "width": 128
+        "height": 32,
+        "width": 32
     }
 }
