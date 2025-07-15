@@ -72,11 +72,11 @@
             }
         },
         "mapa2.tmx": {
-            "scale": 0.44085937499999994,
-            "selectedLayer": 1,
+            "scale": 0.5333854166666666,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 960.6237816764133,
-                "y": 639.6597554492291
+                "x": 573.6939751977346,
+                "y": 421.833805292452
             }
         },
         "mapa2.tmx#archer": {
@@ -85,6 +85,9 @@
         "mapa2.tmx#main-tiles": {
             "scaleInDock": 1,
             "scaleInEditor": 1
+        },
+        "mapa2.tmx#tileSet": {
+            "scaleInDock": 1
         },
         "tileSet.tsx": {
             "scaleInDock": 1,
@@ -103,9 +106,9 @@
     "property.type": "bool",
     "recentFiles": [
         "mapa2.tmx",
+        "tileSet.tsx",
         "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json",
         "mapa1.json",
-        "tileSet.tsx",
         "main-tiles.tsx",
         "mapa1.tmx",
         "mapa1_json.tmj",

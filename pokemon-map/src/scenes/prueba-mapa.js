@@ -10,8 +10,8 @@ export default class MapaScene extends Phaser.Scene {
   preload() {
     console.log("Cargando escena de mapa...");
     // Cargar el tileset y el mapa
-    this.load.image('tiles', 'assets/main-tiles.png');
-    this.load.tilemapTiledJSON('map', 'assets/mapa1.json');
+    this.load.image('tiles', 'assets/tile-set.png');
+    this.load.tilemapTiledJSON('map', 'assets/mapa2.json');
 
     this.load.spritesheet('archer', 'assets/Archer/Idle.png', {
       frameWidth: 128,
@@ -55,7 +55,7 @@ export default class MapaScene extends Phaser.Scene {
     const map = this.make.tilemap({ key: 'map' });
 
     // Vincular el tileset del JSON con la imagen cargada
-    const tileset = map.addTilesetImage('main-tiles', 'tiles');
+    const tileset = map.addTilesetImage('tileSet', 'tiles');
 
     // Crear capa (layer) de tiles
     const groundLayer = map.createLayer('ground&path', tileset, 0, 0);
