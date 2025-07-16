@@ -56,9 +56,10 @@ export default class PreloadScene extends Phaser.Scene {
       jump: Phaser.Input.Keyboard.KeyCodes.SPACE
     });
 
-    // Velocidad de movimiento
     this.moveSpeed = 250;
     this.jumpSpeed = -800;
+    this.jumpCount = 0;
+    this.maxJumps = 2; // Número máximo de saltos permitidos
   }
 
   update() {
@@ -75,9 +76,13 @@ export default class PreloadScene extends Phaser.Scene {
     // Salto (solo si está en el suelo)
     const onGround = this.player1.body.touching.down;
 
-    //if (Phaser.Input.Keyboard.JustDown(this.keys.jump) && onGround) {
-    if (this.keys.jump.isDown && onGround) {
-    this.player1.setVelocityY(this.jumpSpeed);
+    if (onGround) {
+      this.jumpCount = 0; // Resetear al tocar el suelo
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keys.jump) && this.jumpCount < this.maxJumps) {
+      this.player1.setVelocityY(this.jumpSpeed);
+      this.jumpCount++;
     }
   }
 
