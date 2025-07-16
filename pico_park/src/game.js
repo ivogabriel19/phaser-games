@@ -6,5 +6,7 @@ import GameScene from './scenes/game-scene.js';
 
 const game = new Phaser.Game(config);
 
-game.scene.add(SCENE_KEYS.PRELOAD, PreloadScene);
 game.scene.start(SCENE_KEYS.PRELOAD);
+
+//game.scene.add(SCENE_KEYS.GAME, GameScene);
+//game.scene.start(SCENE_KEYS.GAME);
