@@ -75,8 +75,9 @@ export default class PreloadScene extends Phaser.Scene {
     // Salto (solo si está en el suelo)
     const onGround = this.player1.body.touching.down;
 
-    if (Phaser.Input.Keyboard.JustDown(this.keys.jump) && onGround) {
-      this.player1.setVelocityY(this.jumpSpeed);
+    //if (Phaser.Input.Keyboard.JustDown(this.keys.jump) && onGround) {
+    if (this.keys.jump.isDown && onGround) {
+    this.player1.setVelocityY(this.jumpSpeed);
     }
   }
 
