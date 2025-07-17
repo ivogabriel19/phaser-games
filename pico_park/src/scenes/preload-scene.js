@@ -21,6 +21,10 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 32,
       frameHeight: 32
     });
+    this.load.spritesheet('green_guy', 'assets/Sprite-0003.png', {
+      frameWidth: 32,
+      frameHeight: 32
+    });
 
     const g = this.make.graphics({ x: 0, y: 0 }, false);
     g.fillStyle(0xb5651e);
@@ -42,11 +46,19 @@ export default class PreloadScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setScale(2);
 
+    this.player3 = this.physics.add.sprite(30, config.height - 200, 'green_guy')
+      .setOrigin(0.5, 0.5)
+      .setScale(2);
+
     this.player1.setCollideWorldBounds(true);
     this.player2.setCollideWorldBounds(true);
+    this.player3.setCollideWorldBounds(true);
     this.physics.add.collider(this.player1, this.floor);
     this.physics.add.collider(this.player2, this.floor);
+    this.physics.add.collider(this.player3, this.floor);
     this.physics.add.collider(this.player1, this.player2);
+    this.physics.add.collider(this.player2, this.player3);
+    this.physics.add.collider(this.player3, this.player1);
 
     this.anims.create({
       key: 'orange_guy-idle',
@@ -62,8 +74,16 @@ export default class PreloadScene extends Phaser.Scene {
       repeat: -1
     });
 
+    this.anims.create({
+      key: 'green_guy-idle',
+      frames: this.anims.generateFrameNumbers('green_guy', { start: 0, end: 5 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
     this.player1.anims.play('orange_guy-idle');
     this.player2.anims.play('blue_guy-idle');
+    this.player3.anims.play('green_guy-idle');
 
     // Capturar teclas WASD
     this.keys = this.input.keyboard.addKeys({
@@ -72,13 +92,17 @@ export default class PreloadScene extends Phaser.Scene {
       right1: Phaser.Input.Keyboard.KeyCodes.D,
       jump2: Phaser.Input.Keyboard.KeyCodes.UP,
       left2: Phaser.Input.Keyboard.KeyCodes.LEFT,
-      right2: Phaser.Input.Keyboard.KeyCodes.RIGHT
+      right2: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      jump3: Phaser.Input.Keyboard.KeyCodes.I,
+      left3: Phaser.Input.Keyboard.KeyCodes.J,
+      right3: Phaser.Input.Keyboard.KeyCodes.L
     });
 
     this.moveSpeed = 250;
     this.jumpSpeed = -800;
     this.jumpCount1 = 0;
     this.jumpCount2 = 0;
+    this.jumpCount3 = 0;
     this.maxJumps = 3; // Número máximo de saltos permitidos
   }
 
@@ -92,6 +116,7 @@ export default class PreloadScene extends Phaser.Scene {
     } else {
       this.player1.setVelocityX(0);
     }
+    
     if (this.keys.left2.isDown) {
       this.player2.setVelocityX(-this.moveSpeed);
       this.player2.setFlipX(true);
@@ -101,10 +126,21 @@ export default class PreloadScene extends Phaser.Scene {
     } else {
       this.player2.setVelocityX(0);
     }
+    
+    if (this.keys.left3.isDown) {
+      this.player3.setVelocityX(-this.moveSpeed);
+      this.player3.setFlipX(true);
+    } else if (this.keys.right3.isDown) {
+      this.player3.setVelocityX(this.moveSpeed);
+      this.player3.setFlipX(false);
+    } else {
+      this.player3.setVelocityX(0);
+    }
 
     // Salto (solo si está en el suelo)
     const onGround1 = this.player1.body.touching.down;
     const onGround2 = this.player2.body.touching.down;
+  const onGround3 = this.player3.body.touching.down;
 
     // Resetear al tocar el suelo
     if (onGround1) {
@@ -112,6 +148,9 @@ export default class PreloadScene extends Phaser.Scene {
     }
     if (onGround2) {
       this.jumpCount2 = 0;
+    }
+    if (onGround3) {
+      this.jumpCount3 = 0;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.jump1) && this.jumpCount1 < this.maxJumps) {
@@ -121,6 +160,10 @@ export default class PreloadScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.jump2) && this.jumpCount2 < this.maxJumps) {
       this.player2.setVelocityY(this.jumpSpeed);
       this.jumpCount2++;
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.keys.jump3) && this.jumpCount3 < this.maxJumps) {
+      this.player3.setVelocityY(this.jumpSpeed);
+      this.jumpCount3++;
     }
   }
 
