@@ -1,0 +1,21 @@
+{
+  "name": "race-driver",
+  "version": "0.0.0",
+  "description": "Outrun style driving game in Phaser 3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "F1",
+    "race",
+    "driving",
+    "phaser",
+    "webgame"
+  ],
+  "author": "IvoGabriel",
+  "license": "ISC",
+  "dependencies": {
+    "phaser": "^3.90.0"
+  }
+}
