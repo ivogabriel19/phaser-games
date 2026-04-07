@@ -10,7 +10,8 @@
     "file.lastUsedOpenFilter": "Todos los archivos (*)",
     "fileStates": {
         "": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "C:/Workspace/phaser-games/pokemon-map/assets/mapa1.json": {
             "scale": 0.8817187499999999,
@@ -72,11 +73,11 @@
             }
         },
         "mapa2.tmx": {
-            "scale": 0.5333854166666666,
-            "selectedLayer": 3,
+            "scale": 1,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 573.6939751977346,
-                "y": 421.833805292452
+                "x": 301,
+                "y": 223
             }
         },
         "mapa2.tmx#archer": {
@@ -87,7 +88,8 @@
             "scaleInEditor": 1
         },
         "mapa2.tmx#tileSet": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "tileSet.tsx": {
             "scaleInDock": 1,
