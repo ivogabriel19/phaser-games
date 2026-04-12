@@ -3,175 +3,146 @@ export default class roadScene extends Phaser.Scene {
     super('roadScene');
   }
 
+  preload() {
+    this.load.image('car', 'assets/f1_sprite_256.png');
+  }
+
   create() {
-    // CONFIG
-    this.width = this.scale.width;
-    this.height = this.scale.height;
+    this.W = this.scale.width;   // 800
+    this.H = this.scale.height;  // 600
 
-    this.roadWidth = 2000;
-    this.segmentLength = 200;
-    this.cameraHeight = 1000;
-    this.cameraDepth = 1;
-    this.drawDistance = 300;
+    // ── Parámetros del camino ───────────────────────────────────────
+    this.segLen   = 200;   // unidades de mundo por segmento
+    this.numSegs  = 500;   // total de segmentos (cíclico → camino infinito)
+    this.drawDist = 150;   // cuántos segmentos se dibujan
+    this.camDepth = 150;   // distancia focal (unidades de mundo)
+    this.camH     = 300;   // altura de cámara sobre la pista
+    this.roadHW   = 400;   // semiancho de la pista en unidades de mundo
 
-    this.speed = 0;
-    this.maxSpeed = 12000;
-    this.acceleration = 200;
+    // Segmentos planos (camino recto, sin curvas)
+    this.segs = Array.from({ length: this.numSegs }, (_, i) => ({ i }));
 
-    this.position = 0;
-    this.playerX = 0; // -1 izquierda, +1 derecha
+    // ── Estado del jugador ──────────────────────────────────────────
+    this.pos     = 0;                    // posición Z de la cámara
+    this.speed   = 0;
+    this.maxSpd  = this.segLen * 6;     // 6 segmentos/seg (~240 km/h)
+    this.playerX = 0;                   // desplazamiento lateral (−1 … +1)
 
-    this.segments = [];
-    this.createRoad();
+    // ── Gráficos ────────────────────────────────────────────────────
+    this.gfx = this.add.graphics();
 
-    this.graphics = this.add.graphics();
+    this.carImg = this.add.image(this.W / 2, this.H - 80, 'car');
+    this.carImg.setScale(0.6);
+    this.carImg.setDepth(10);
 
-    // INPUT
-    this.cursors = this.input.keyboard.createCursorKeys();
+    // ── Controles WASD ──────────────────────────────────────────────
+    this.keys = this.input.keyboard.addKeys({
+      up:    Phaser.Input.Keyboard.KeyCodes.W,
+      down:  Phaser.Input.Keyboard.KeyCodes.S,
+      left:  Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
   }
 
-  // =========================
-  // CREAR CAMINO
-  // =========================
-  createRoad() {
-    const total = 500;
-
-    for (let i = 0; i < total; i++) {
-      this.segments.push({
-        index: i,
-        z: i * this.segmentLength,
-        curve: 0,
-        y: 0
-      });
-    }
-
-    // 👉 Agregamos curvas suaves
-    this.addCurve(50, 100, 0.5);   // derecha
-    this.addCurve(150, 100, -0.7); // izquierda
-    this.addCurve(300, 150, 1.0);  // curva larga
-  }
-
-  addCurve(start, length, curve) {
-    for (let i = start; i < start + length; i++) {
-      this.segments[i % this.segments.length].curve = curve;
-    }
-  }
-
-  // =========================
-  // UPDATE
-  // =========================
-  update(time, delta) {
+  update(_time, delta) {
     const dt = delta / 1000;
 
-    // ACELERAR SIEMPRE (tipo arcade)
-    this.speed += this.acceleration;
-    this.speed = Math.min(this.speed, this.maxSpeed);
+    // Aceleración / frenada / rozamiento
+    if (this.keys.up.isDown)
+      this.speed = Math.min(this.speed + this.maxSpd * 2 * dt, this.maxSpd);
+    else if (this.keys.down.isDown)
+      this.speed = Math.max(this.speed - this.maxSpd * 3 * dt, 0);
+    else
+      this.speed = Math.max(this.speed - this.maxSpd * dt, 0);
 
-    this.position += this.speed * dt;
+    // Dirección lateral
+    if (this.keys.left.isDown)  this.playerX -= 2 * dt;
+    if (this.keys.right.isDown) this.playerX += 2 * dt;
+    this.playerX = Phaser.Math.Clamp(this.playerX, -1.5, 1.5);
 
-    // INPUT
-    if (this.cursors.left.isDown) {
-      this.playerX -= 2 * dt;
-    } else if (this.cursors.right.isDown) {
-      this.playerX += 2 * dt;
+    this.pos += this.speed * dt;
+
+    this.drawRoad();
+
+    // El sprite del auto se mueve lateralmente sobre la pantalla
+    this.carImg.x = this.W / 2 + this.playerX * 280;
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Renderizado pseudo-3D (proyección perspectiva por tira)
+  //
+  // Para la tira n (n=0 es el segmento donde está la cámara,
+  // n=drawDist es el más lejano):
+  //   dFar  = profundidad del borde lejano  → proyecta arriba en pantalla
+  //   dNear = profundidad del borde cercano → proyecta abajo en pantalla
+  //   escala = camDepth / profundidad
+  //   screenY = horizonte + camH * escala
+  // ────────────────────────────────────────────────────────────────
+  drawRoad() {
+    this.gfx.clear();
+
+    const horizon = this.H / 2;
+    const subOff  = this.pos % this.segLen;          // offset dentro del segmento actual
+    const segBase = Math.floor(this.pos / this.segLen);
+
+    // Cielo
+    this.gfx.fillStyle(0x4488cc);
+    this.gfx.fillRect(0, 0, this.W, horizon);
+
+    // Dibuja de lejos a cerca (algoritmo del pintor)
+    for (let n = this.drawDist; n >= 0; n--) {
+      const dFar  = (n + 1) * this.segLen - subOff;
+      const dNear = n       * this.segLen - subOff;
+
+      if (dFar <= 0) continue; // tira completamente detrás de la cámara
+
+      const sFar  = this.camDepth / dFar;
+      // Cuando dNear ≤ 0 (borde cercano está detrás de la cámara),
+      // usamos escala 2 para que la tira llegue hasta el borde inferior.
+      const sNear = dNear > 0 ? Math.min(this.camDepth / dNear, 2) : 2;
+
+      const yFar  = horizon + this.camH * sFar;
+      const yNear = Math.min(this.H, horizon + this.camH * sNear);
+
+      if (yFar  >= this.H)    continue; // tira por debajo de la pantalla
+      if (yNear <= horizon)   continue; // tira por encima del horizonte
+
+      const wFar  = this.roadHW * sFar;
+      const wNear = this.roadHW * sNear;
+      const cx    = this.W / 2;
+
+      // Colores alternados cada 3 segmentos
+      const si  = (segBase + n) % this.numSegs;
+      const alt = (si % 6) < 3;
+
+      // ── Pasto (franja completa de pantalla) ──
+      this.gfx.fillStyle(alt ? 0x228b22 : 0x1a7a1a);
+      this.gfx.fillRect(0, yFar, this.W, yNear - yFar);
+
+      // ── Asfalto ──
+      this.quad(alt ? 0x666666 : 0x555555,
+        cx - wNear, yNear,  cx + wNear, yNear,
+        cx + wFar,  yFar,   cx - wFar,  yFar);
+
+      // ── Bordillos ──
+      const rumble = alt ? 0xffffff : 0xcc0000;
+      this.quad(rumble,
+        cx - wNear * 1.2, yNear,  cx - wNear, yNear,
+        cx - wFar,        yFar,   cx - wFar * 1.2, yFar);
+      this.quad(rumble,
+        cx + wNear,       yNear,  cx + wNear * 1.2, yNear,
+        cx + wFar * 1.2,  yFar,   cx + wFar, yFar);
     }
-
-    this.playerX = Phaser.Math.Clamp(this.playerX, -1, 1);
-
-    this.renderRoad();
   }
 
-  // =========================
-  // RENDER PSEUDO-3D
-  // =========================
-  renderRoad() {
-    this.graphics.clear();
-
-    let baseIndex = Math.floor(this.position / this.segmentLength) % this.segments.length;
-
-    let x = 0;
-    let dx = 0;
-
-    let maxY = this.height;
-
-    for (let n = 0; n < this.drawDistance; n++) {
-      let segment = this.segments[(baseIndex + n) % this.segments.length];
-
-      let prevSegment = this.segments[(baseIndex + n - 1 + this.segments.length) % this.segments.length];
-
-      let z = segment.z - (this.position % this.segmentLength);
-      let scale = this.cameraDepth / z;
-
-      let screenX = (this.width / 2) + (scale * (x + this.playerX * this.roadWidth));
-      let screenY = (this.height / 2) - (scale * this.cameraHeight);
-      let screenW = scale * this.roadWidth;
-
-      let prevZ = prevSegment.z - (this.position % this.segmentLength);
-      let prevScale = this.cameraDepth / prevZ;
-
-      let prevX = (this.width / 2) + (prevScale * (x - dx + this.playerX * this.roadWidth));
-      let prevY = (this.height / 2) - (prevScale * this.cameraHeight);
-      let prevW = prevScale * this.roadWidth;
-
-      if (screenY >= maxY) continue;
-      maxY = screenY;
-
-      this.drawSegment(
-        prevX, prevY, prevW,
-        screenX, screenY, screenW,
-        n
-      );
-
-      dx += segment.curve;
-      x += dx;
-    }
-  }
-
-  // =========================
-  // DIBUJAR SEGMENTO
-  // =========================
-  drawSegment(x1, y1, w1, x2, y2, w2, n) {
-    const grassColor = (Math.floor(n / 3) % 2) ? 0x10aa10 : 0x009a00;
-    const roadColor = (Math.floor(n / 3) % 2) ? 0x555555 : 0x666666;
-    const rumbleColor = 0xff0000;
-
-    // GRASS
-    this.graphics.fillStyle(grassColor);
-    this.graphics.fillRect(0, y2, this.width, y1 - y2);
-
-    // RUMBLE IZQ
-    this.drawQuad(rumbleColor,
-      x1 - w1 * 1.2, y1,
-      x1 - w1, y1,
-      x2 - w2, y2,
-      x2 - w2 * 1.2, y2
-    );
-
-    // RUMBLE DER
-    this.drawQuad(rumbleColor,
-      x1 + w1, y1,
-      x1 + w1 * 1.2, y1,
-      x2 + w2 * 1.2, y2,
-      x2 + w2, y2
-    );
-
-    // ROAD
-    this.drawQuad(roadColor,
-      x1 - w1, y1,
-      x1 + w1, y1,
-      x2 + w2, y2,
-      x2 - w2, y2
-    );
-  }
-
-  drawQuad(color, x1, y1, x2, y2, x3, y3, x4, y4) {
-    this.graphics.fillStyle(color);
-    this.graphics.beginPath();
-    this.graphics.moveTo(x1, y1);
-    this.graphics.lineTo(x2, y2);
-    this.graphics.lineTo(x3, y3);
-    this.graphics.lineTo(x4, y4);
-    this.graphics.closePath();
-    this.graphics.fillPath();
+  quad(color, x1, y1, x2, y2, x3, y3, x4, y4) {
+    this.gfx.fillStyle(color);
+    this.gfx.beginPath();
+    this.gfx.moveTo(x1, y1);
+    this.gfx.lineTo(x2, y2);
+    this.gfx.lineTo(x3, y3);
+    this.gfx.lineTo(x4, y4);
+    this.gfx.closePath();
+    this.gfx.fillPath();
   }
 }

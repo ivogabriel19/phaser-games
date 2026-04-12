@@ -1,11 +1,12 @@
+// Phaser está disponible como global desde el CDN
 export const gameConfig = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    backgroundColor: '#000000',
-    parent: document.body,
-    scene: [roadScene],
-    physics: {
-      default: 'arcade'
-    }
-  };
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  parent: document.body,
+  backgroundColor: '#000000',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+};

@@ -1,10 +1,7 @@
-import Phaser from 'phaser';
-import { gameConfig } from './config/GameConfig';
-import roadScene from './scenes/roadScene';
+// Phaser llega como global desde el CDN — no hay import de 'phaser'
+import { gameConfig } from './config/gameConfig.js';
+import roadScene from './scenes/roadScene.js';
 
 export function launchGame() {
-  const game = new Phaser.Game(gameConfig);
-
-  game.scene.add('roadScene', roadScene);
-  game.scene.start('roadScene');
+  new Phaser.Game({ ...gameConfig, scene: [roadScene] });
 }
