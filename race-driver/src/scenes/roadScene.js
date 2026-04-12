@@ -8,32 +8,44 @@ export default class roadScene extends Phaser.Scene {
   }
 
   create() {
-    this.W = this.scale.width;   // 800
-    this.H = this.scale.height;  // 600
+    this.W = this.scale.width;
+    this.H = this.scale.height;
 
     // ── Parámetros del camino ───────────────────────────────────────
     this.segLen   = 200;   // unidades de mundo por segmento
-    this.numSegs  = 500;   // total de segmentos (cíclico → camino infinito)
-    this.drawDist = 150;   // cuántos segmentos se dibujan
-    this.camDepth = 150;   // distancia focal (unidades de mundo)
+    this.drawDist = 100;   // segmentos visibles
+    this.camDepth = 150;   // distancia focal
     this.camH     = 300;   // altura de cámara sobre la pista
-    this.roadHW   = 400;   // semiancho de la pista en unidades de mundo
+    this.roadHW   = 400;   // semiancho de la pista
 
-    // Segmentos planos (camino recto, sin curvas)
-    this.segs = Array.from({ length: this.numSegs }, (_, i) => ({ i }));
+    // ── Construir circuito ──────────────────────────────────────────
+    this.segs = [];
+    this.buildCircuit();
+    this.numSegs    = this.segs.length;
+    this.circuitLen = this.numSegs * this.segLen;
 
     // ── Estado del jugador ──────────────────────────────────────────
-    this.pos     = 0;                    // posición Z de la cámara
-    this.speed   = 0;
-    this.maxSpd  = this.segLen * 6;     // 6 segmentos/seg (~240 km/h)
-    this.playerX = 0;                   // desplazamiento lateral (−1 … +1)
+    this.pos      = 0;
+    this.speed    = 0;
+    this.maxSpd   = this.segLen * 6;   // ~300 km/h
+    this.playerX  = 0;
+    this.accelVal = 0;
+    this.brakeVal = 0;
 
     // ── Gráficos ────────────────────────────────────────────────────
-    this.gfx = this.add.graphics();
+    this.gfx    = this.add.graphics();
+    this.hudGfx = this.add.graphics().setDepth(20);
 
     this.carImg = this.add.image(this.W / 2, this.H - 80, 'car');
-    this.carImg.setScale(0.6);
-    this.carImg.setDepth(10);
+    this.carImg.setScale(0.6).setDepth(10);
+
+    // ── HUD ─────────────────────────────────────────────────────────
+    const ts = { fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 };
+    this.speedText = this.add.text(20, 16, '0 km/h', {
+      ...ts, fontSize: '24px', color: '#ffffff',
+    }).setDepth(20);
+    this.add.text(20, 52, 'ACCEL', { ...ts, fontSize: '11px', color: '#44ff44' }).setDepth(20);
+    this.add.text(20, 72, 'BRAKE', { ...ts, fontSize: '11px', color: '#ff4444' }).setDepth(20);
 
     // ── Controles WASD ──────────────────────────────────────────────
     this.keys = this.input.keyboard.addKeys({
@@ -44,10 +56,63 @@ export default class roadScene extends Phaser.Scene {
     });
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // CONSTRUCCIÓN DEL CIRCUITO (óvalo)
+  //
+  // Cada segmento tiene:
+  //   curve    → desplazamiento acumulado en render (>0 = curva derecha)
+  //   worldX/Z → posición 2D real para el minimapa
+  //
+  // Geometría del óvalo:
+  //   Recta 1 → Semiciclo derecha → Recta 2 → Semiciclo derecha
+  //   El circuito cierra exactamente en (0,0).
+  //
+  // Radio de los semiciclos: r = segLen / (π / TURN)
+  // Desplazamiento X entre rectas: 2r
+  // ═══════════════════════════════════════════════════════════════════
+  buildCircuit() {
+    const STRAIGHT   = 100;            // segmentos por recta
+    const TURN       = 100;            // segmentos por semiciclo
+    const CURVE_RENDER = 0.045;        // fuerza visual de la curva
+
+    const sections = [
+      { count: STRAIGHT, curve: 0,            dAngle: 0 },
+      { count: TURN,     curve: CURVE_RENDER, dAngle: Math.PI / TURN },
+      { count: STRAIGHT, curve: 0,            dAngle: 0 },
+      { count: TURN,     curve: CURVE_RENDER, dAngle: Math.PI / TURN },
+    ];
+
+    let wx = 0, wz = 0, angle = 0;
+
+    for (const sec of sections) {
+      for (let i = 0; i < sec.count; i++) {
+        this.segs.push({ curve: sec.curve, worldX: wx, worldZ: wz });
+        // Avanzar posición real en el mundo
+        wx    += Math.sin(angle) * this.segLen;
+        wz    += Math.cos(angle) * this.segLen;
+        angle += sec.dAngle;
+      }
+    }
+
+    // Bounding box para el minimapa
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const s of this.segs) {
+      if (s.worldX < minX) minX = s.worldX;
+      if (s.worldX > maxX) maxX = s.worldX;
+      if (s.worldZ < minZ) minZ = s.worldZ;
+      if (s.worldZ > maxZ) maxZ = s.worldZ;
+    }
+    this.mmMinX = minX; this.mmMaxX = maxX;
+    this.mmMinZ = minZ; this.mmMaxZ = maxZ;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // UPDATE
+  // ═══════════════════════════════════════════════════════════════════
   update(_time, delta) {
     const dt = delta / 1000;
 
-    // Aceleración / frenada / rozamiento
+    // Velocidad
     if (this.keys.up.isDown)
       this.speed = Math.min(this.speed + this.maxSpd * 2 * dt, this.maxSpd);
     else if (this.keys.down.isDown)
@@ -60,81 +125,169 @@ export default class roadScene extends Phaser.Scene {
     if (this.keys.right.isDown) this.playerX += 2 * dt;
     this.playerX = Phaser.Math.Clamp(this.playerX, -1.5, 1.5);
 
-    this.pos += this.speed * dt;
+    // Avanzar posición en el circuito (cíclico)
+    this.pos = (this.pos + this.speed * dt) % this.circuitLen;
 
     this.drawRoad();
+    this.drawHUD();
 
-    // El sprite del auto se mueve lateralmente sobre la pantalla
     this.carImg.x = this.W / 2 + this.playerX * 280;
   }
 
-  // ────────────────────────────────────────────────────────────────
-  // Renderizado pseudo-3D (proyección perspectiva por tira)
+  // ═══════════════════════════════════════════════════════════════════
+  // RENDER DEL CAMINO PSEUDO-3D
   //
-  // Para la tira n (n=0 es el segmento donde está la cámara,
-  // n=drawDist es el más lejano):
-  //   dFar  = profundidad del borde lejano  → proyecta arriba en pantalla
-  //   dNear = profundidad del borde cercano → proyecta abajo en pantalla
-  //   escala = camDepth / profundidad
-  //   screenY = horizonte + camH * escala
-  // ────────────────────────────────────────────────────────────────
+  // Primera pasada (cerca → lejos): acumula el offset de curva en
+  // pantalla (dx/x), calcula proyección perspectiva de cada tira.
+  //
+  // Segunda pasada (lejos → cerca): dibuja con algoritmo del pintor.
+  // ═══════════════════════════════════════════════════════════════════
   drawRoad() {
     this.gfx.clear();
 
     const horizon = this.H / 2;
-    const subOff  = this.pos % this.segLen;          // offset dentro del segmento actual
+    const subOff  = this.pos % this.segLen;
     const segBase = Math.floor(this.pos / this.segLen);
 
-    // Cielo
-    this.gfx.fillStyle(0x4488cc);
-    this.gfx.fillRect(0, 0, this.W, horizon);
+    // ── 1ª pasada: calcula geometría de cada tira ──
+    const strips = new Array(this.drawDist + 1).fill(null);
+    let x = 0, dx = 0;
 
-    // Dibuja de lejos a cerca (algoritmo del pintor)
-    for (let n = this.drawDist; n >= 0; n--) {
+    for (let n = 0; n <= this.drawDist; n++) {
+      const si  = (segBase + n) % this.numSegs;
+      const seg = this.segs[si];
+
       const dFar  = (n + 1) * this.segLen - subOff;
       const dNear = n       * this.segLen - subOff;
 
-      if (dFar <= 0) continue; // tira completamente detrás de la cámara
+      if (dFar > 0) {
+        const sFar  = this.camDepth / dFar;
+        const sNear = dNear > 0 ? Math.min(this.camDepth / dNear, 2) : 2;
 
-      const sFar  = this.camDepth / dFar;
-      // Cuando dNear ≤ 0 (borde cercano está detrás de la cámara),
-      // usamos escala 2 para que la tira llegue hasta el borde inferior.
-      const sNear = dNear > 0 ? Math.min(this.camDepth / dNear, 2) : 2;
+        strips[n] = {
+          si,
+          yFar:  horizon + this.camH * sFar,
+          yNear: Math.min(this.H, horizon + this.camH * sNear),
+          // cx: centro del camino en pantalla = W/2 + curva acumulada - offset lateral del jugador
+          cx:    this.W / 2 + x - this.playerX * 100,
+          wFar:  this.roadHW * sFar,
+          wNear: this.roadHW * sNear,
+        };
+      }
 
-      const yFar  = horizon + this.camH * sFar;
-      const yNear = Math.min(this.H, horizon + this.camH * sNear);
+      // Acumular desplazamiento de curva para el siguiente segmento
+      dx += seg.curve;
+      x  += dx;
+    }
 
-      if (yFar  >= this.H)    continue; // tira por debajo de la pantalla
-      if (yNear <= horizon)   continue; // tira por encima del horizonte
+    // ── Cielo ──
+    this.gfx.fillStyle(0x4488cc);
+    this.gfx.fillRect(0, 0, this.W, horizon);
 
-      const wFar  = this.roadHW * sFar;
-      const wNear = this.roadHW * sNear;
-      const cx    = this.W / 2;
+    // ── 2ª pasada: dibuja de lejos a cerca ──
+    for (let n = this.drawDist; n >= 0; n--) {
+      const s = strips[n];
+      if (!s) continue;
+      if (s.yFar  >= this.H)    continue;
+      if (s.yNear <= horizon)   continue;
 
-      // Colores alternados cada 3 segmentos
-      const si  = (segBase + n) % this.numSegs;
+      const { si, yFar, yNear, cx, wFar, wNear } = s;
       const alt = (si % 6) < 3;
 
-      // ── Pasto (franja completa de pantalla) ──
+      // Pasto
       this.gfx.fillStyle(alt ? 0x228b22 : 0x1a7a1a);
       this.gfx.fillRect(0, yFar, this.W, yNear - yFar);
 
-      // ── Asfalto ──
+      // Asfalto
       this.quad(alt ? 0x666666 : 0x555555,
         cx - wNear, yNear,  cx + wNear, yNear,
         cx + wFar,  yFar,   cx - wFar,  yFar);
 
-      // ── Bordillos ──
-      const rumble = alt ? 0xffffff : 0xcc0000;
-      this.quad(rumble,
-        cx - wNear * 1.2, yNear,  cx - wNear, yNear,
-        cx - wFar,        yFar,   cx - wFar * 1.2, yFar);
-      this.quad(rumble,
-        cx + wNear,       yNear,  cx + wNear * 1.2, yNear,
-        cx + wFar * 1.2,  yFar,   cx + wFar, yFar);
+      // Bordillos (alternando blanco/rojo)
+      const rum = alt ? 0xffffff : 0xcc0000;
+      this.quad(rum,
+        cx - wNear * 1.08, yNear,  cx - wNear, yNear,
+        cx - wFar,         yFar,   cx - wFar * 1.08, yFar);
+      this.quad(rum,
+        cx + wNear,        yNear,  cx + wNear * 1.08, yNear,
+        cx + wFar * 1.08,  yFar,   cx + wFar,  yFar);
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // HUD: velocidad, barras accel/brake, minimapa
+  // ═══════════════════════════════════════════════════════════════════
+  drawHUD() {
+    this.accelVal = Phaser.Math.Linear(this.accelVal, this.keys.up.isDown   ? 1 : 0, 0.25);
+    this.brakeVal = Phaser.Math.Linear(this.brakeVal, this.keys.down.isDown ? 1 : 0, 0.25);
+
+    const kmh = Math.round(this.speed / this.maxSpd * 300);
+    this.speedText.setText(kmh + ' km/h');
+
+    this.hudGfx.clear();
+
+    // Barras
+    const BX = 58, BW = 110, BH = 12;
+    this.hudGfx.fillStyle(0x003300);
+    this.hudGfx.fillRect(BX, 50, BW, BH);
+    this.hudGfx.fillStyle(0x44ff44);
+    this.hudGfx.fillRect(BX, 50, this.accelVal * BW, BH);
+    this.hudGfx.fillStyle(0x330000);
+    this.hudGfx.fillRect(BX, 70, BW, BH);
+    this.hudGfx.fillStyle(0xff4444);
+    this.hudGfx.fillRect(BX, 70, this.brakeVal * BW, BH);
+
+    this.drawMinimap();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // MINIMAPA
+  //
+  // Dibuja el trazado completo del circuito escalado para caber en
+  // un rectángulo en la esquina inferior derecha.
+  // El punto rojo indica la posición actual del jugador.
+  // ═══════════════════════════════════════════════════════════════════
+  drawMinimap() {
+    const MW = 150, MH = 130;
+    const MX = this.W - MW - 15;
+    const MY = this.H - MH - 15;
+
+    // Escala uniforme para que el óvalo quepa centrado
+    const rangeX = this.mmMaxX - this.mmMinX;
+    const rangeZ = this.mmMaxZ - this.mmMinZ;
+    const scale  = Math.min(MW / rangeX, MH / rangeZ) * 0.86;
+
+    const midSX = MX + MW / 2;
+    const midSZ = MY + MH / 2;
+    const midWX = (this.mmMinX + this.mmMaxX) / 2;
+    const midWZ = (this.mmMinZ + this.mmMaxZ) / 2;
+
+    const toSX = wx => midSX + (wx - midWX) * scale;
+    const toSZ = wz => midSZ + (wz - midWZ) * scale;
+
+    // Panel de fondo semitransparente
+    this.hudGfx.fillStyle(0x000000, 0.55);
+    this.hudGfx.fillRoundedRect(MX - 6, MY - 6, MW + 12, MH + 12, 6);
+
+    // Trazado del circuito
+    this.hudGfx.lineStyle(2, 0xffffff, 0.9);
+    this.hudGfx.beginPath();
+    for (let i = 0; i < this.segs.length; i++) {
+      const sx = toSX(this.segs[i].worldX);
+      const sz = toSZ(this.segs[i].worldZ);
+      i === 0 ? this.hudGfx.moveTo(sx, sz) : this.hudGfx.lineTo(sx, sz);
+    }
+    this.hudGfx.closePath();
+    this.hudGfx.strokePath();
+
+    // Punto del jugador
+    const si   = Math.floor(this.pos / this.segLen) % this.numSegs;
+    const pseg = this.segs[si];
+    this.hudGfx.fillStyle(0xff2222, 1);
+    this.hudGfx.fillCircle(toSX(pseg.worldX), toSZ(pseg.worldZ), 4);
+  }
+
+  // ─── utilidad: trapezoide relleno ──────────────────────────────────
   quad(color, x1, y1, x2, y2, x3, y3, x4, y4) {
     this.gfx.fillStyle(color);
     this.gfx.beginPath();
