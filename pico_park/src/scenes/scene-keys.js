@@ -1,6 +1,6 @@
 export const SCENE_KEYS = Object.freeze({
   PRELOAD: 'PreloadScene',
-  GAME: 'GameScene',
+  MOVEMENT_TEST: 'MovementTestScene',
   MENU: 'MenuScene',
   SETTINGS: 'SettingsScene',
 })

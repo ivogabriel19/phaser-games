@@ -1,15 +1,11 @@
 import Phaser from "../lib/phaser.js";
 import { SCENE_KEYS } from "./scene-keys.js";
 import { config } from '../config.js';
-
+import { LEVELS } from './levels.js';
 
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
     super({ key: SCENE_KEYS.PRELOAD });
-  }
-
-  init() {
-    console.log("PreloadScene initialized");
   }
 
   preload() {
@@ -25,146 +21,42 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 32,
       frameHeight: 32
     });
-
-    const g = this.make.graphics({ x: 0, y: 0 }, false);
-    g.fillStyle(0xb5651e);
-    g.fillRect(0, 0, config.width, 20);
-    g.generateTexture('floorTexture', config.width, 20);
   }
 
   create() {
+    this.add.text(config.width / 2, 160, 'Pico Park', {
+      fontFamily: 'Arial',
+      fontSize: '64px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
 
-    this.floor = this.physics.add.staticImage(config.width / 2, config.height - 10, 'floorTexture')
-      .setOrigin(0.5, 0.5)
-      .refreshBody();
+    this.add.text(config.width / 2, 230, 'Elegí un nivel para jugar', {
+      fontFamily: 'Arial',
+      fontSize: '28px',
+      color: '#cccccc'
+    }).setOrigin(0.5);
 
-    this.player1 = this.physics.add.sprite(100, config.height - 200, 'orange_guy')
-      .setOrigin(0.5, 0.5)
-      .setScale(2);
-
-    this.player2 = this.physics.add.sprite(200, config.height - 200, 'blue_guy')
-      .setOrigin(0.5, 0.5)
-      .setScale(2);
-
-    this.player3 = this.physics.add.sprite(30, config.height - 200, 'green_guy')
-      .setOrigin(0.5, 0.5)
-      .setScale(2);
-
-    this.player1.setCollideWorldBounds(true);
-    this.player2.setCollideWorldBounds(true);
-    this.player3.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player1, this.floor);
-    this.physics.add.collider(this.player2, this.floor);
-    this.physics.add.collider(this.player3, this.floor);
-    this.physics.add.collider(this.player1, this.player2);
-    this.physics.add.collider(this.player2, this.player3);
-    this.physics.add.collider(this.player3, this.player1);
-
-    this.anims.create({
-      key: 'orange_guy-idle',
-      frames: this.anims.generateFrameNumbers('orange_guy', { start: 0, end: 5 }),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: 'blue_guy-idle',
-      frames: this.anims.generateFrameNumbers('blue_guy', { start: 0, end: 5 }),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: 'green_guy-idle',
-      frames: this.anims.generateFrameNumbers('green_guy', { start: 0, end: 5 }),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.player1.anims.play('orange_guy-idle');
-    this.player2.anims.play('blue_guy-idle');
-    this.player3.anims.play('green_guy-idle');
-
-    // Capturar teclas WASD
-    this.keys = this.input.keyboard.addKeys({
-      jump1: Phaser.Input.Keyboard.KeyCodes.W,
-      left1: Phaser.Input.Keyboard.KeyCodes.A,
-      right1: Phaser.Input.Keyboard.KeyCodes.D,
-      jump2: Phaser.Input.Keyboard.KeyCodes.UP,
-      left2: Phaser.Input.Keyboard.KeyCodes.LEFT,
-      right2: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-      jump3: Phaser.Input.Keyboard.KeyCodes.I,
-      left3: Phaser.Input.Keyboard.KeyCodes.J,
-      right3: Phaser.Input.Keyboard.KeyCodes.L
-    });
-
-    this.moveSpeed = 250;
-    this.jumpSpeed = -800;
-    this.jumpCount1 = 0;
-    this.jumpCount2 = 0;
-    this.jumpCount3 = 0;
-    this.maxJumps = 3; // Número máximo de saltos permitidos
+    this.createLevelSelector();
   }
 
-  update() {
-    if (this.keys.left1.isDown) {
-      this.player1.setVelocityX(-this.moveSpeed);
-      this.player1.setFlipX(true);
-    } else if (this.keys.right1.isDown) {
-      this.player1.setVelocityX(this.moveSpeed);
-      this.player1.setFlipX(false);
-    } else {
-      this.player1.setVelocityX(0);
-    }
-    
-    if (this.keys.left2.isDown) {
-      this.player2.setVelocityX(-this.moveSpeed);
-      this.player2.setFlipX(true);
-    } else if (this.keys.right2.isDown) {
-      this.player2.setVelocityX(this.moveSpeed);
-      this.player2.setFlipX(false);
-    } else {
-      this.player2.setVelocityX(0);
-    }
-    
-    if (this.keys.left3.isDown) {
-      this.player3.setVelocityX(-this.moveSpeed);
-      this.player3.setFlipX(true);
-    } else if (this.keys.right3.isDown) {
-      this.player3.setVelocityX(this.moveSpeed);
-      this.player3.setFlipX(false);
-    } else {
-      this.player3.setVelocityX(0);
-    }
+  createLevelSelector() {
+    const startY = 340;
+    const spacing = 80;
 
-    // Salto (solo si está en el suelo)
-    const onGround1 = this.player1.body.touching.down;
-    const onGround2 = this.player2.body.touching.down;
-  const onGround3 = this.player3.body.touching.down;
+    LEVELS.forEach((level, index) => {
+      const label = this.add.text(config.width / 2, startY + index * spacing, level.title, {
+        fontFamily: 'Arial',
+        fontSize: '36px',
+        color: '#ffffff',
+        backgroundColor: '#2f2f4a',
+        padding: { x: 24, y: 12 }
+      })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
 
-    // Resetear al tocar el suelo
-    if (onGround1) {
-      this.jumpCount1 = 0; 
-    }
-    if (onGround2) {
-      this.jumpCount2 = 0;
-    }
-    if (onGround3) {
-      this.jumpCount3 = 0;
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(this.keys.jump1) && this.jumpCount1 < this.maxJumps) {
-      this.player1.setVelocityY(this.jumpSpeed);
-      this.jumpCount1++;
-    }
-    if (Phaser.Input.Keyboard.JustDown(this.keys.jump2) && this.jumpCount2 < this.maxJumps) {
-      this.player2.setVelocityY(this.jumpSpeed);
-      this.jumpCount2++;
-    }
-    if (Phaser.Input.Keyboard.JustDown(this.keys.jump3) && this.jumpCount3 < this.maxJumps) {
-      this.player3.setVelocityY(this.jumpSpeed);
-      this.jumpCount3++;
-    }
+      label.on('pointerover', () => label.setColor('#ffd166'));
+      label.on('pointerout', () => label.setColor('#ffffff'));
+      label.on('pointerdown', () => this.scene.start(level.sceneKey));
+    });
   }
-
 }

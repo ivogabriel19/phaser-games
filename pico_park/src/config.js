@@ -1,4 +1,5 @@
 import PreloadScene from './scenes/preload-scene.js';
+import MovementTestScene from './scenes/movement-test-scene.js';
 
 export const config = {
   parent: 'game-container',
@@ -6,7 +7,7 @@ export const config = {
   width: 1200,
   height: 800,
   backgroundColor: '#424262',
-  scene: [PreloadScene],
+  scene: [PreloadScene, MovementTestScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
